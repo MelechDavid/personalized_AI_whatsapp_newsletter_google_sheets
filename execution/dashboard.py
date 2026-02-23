@@ -69,7 +69,7 @@ with st.sidebar:
         "Delay between messages (seconds)",
         min_value=1,
         max_value=120,
-        value=15,
+        value=3,
         step=5,
         help="Longer delays reduce risk of being flagged",
     )
