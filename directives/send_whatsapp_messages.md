@@ -6,7 +6,7 @@ Send personalized WhatsApp messages with an image attachment (Exec Learning Summ
 ## Inputs
 - Google Sheet ID (in `.env`)
 - Number of messages to send (user-specified via dashboard, max 45/day)
-- Delay between messages (user-specified, 30-120 seconds)
+- Delay between messages (user-specified, 15-120 seconds)
 
 ## Process
 1. Run `streamlit run execution/dashboard.py` to open the control panel
