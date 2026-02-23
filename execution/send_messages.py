@@ -88,6 +88,7 @@ def run_send_loop(
     delay: int,
     state: Optional[SessionState] = None,
     on_progress: Optional[Callable] = None,
+    sheet_id: Optional[str] = None,
 ) -> list[SendResult]:
     """
     Main send loop.
@@ -144,7 +145,7 @@ def run_send_loop(
 
         # Fetch contacts from Google Sheet
         _log(state, f"Fetching {count} pending contacts from Google Sheet...")
-        contacts = get_pending_contacts(count)
+        contacts = get_pending_contacts(count, sheet_id=sheet_id)
         actual_count = len(contacts)
 
         if actual_count == 0:
@@ -185,19 +186,19 @@ def run_send_loop(
                     image_path=image_path,
                 )
 
-                write_status(contact.row_number, True)
+                write_status(contact.row_number, True, sheet_id=sheet_id)
                 state.sent += 1
                 result = SendResult(contact=contact, success=True)
                 _log(state, f"  -> Sent successfully to {contact.first_name}")
 
             except ContactNotFoundError as e:
-                write_status(contact.row_number, False)
+                write_status(contact.row_number, False, sheet_id=sheet_id)
                 state.failed += 1
                 result = SendResult(contact=contact, success=False, error=str(e))
                 _log(state, f"  -> FAILED: Contact not on WhatsApp ({contact.phone_raw})")
 
             except (SendTimeoutError, WhatsAppSendError) as e:
-                write_status(contact.row_number, False)
+                write_status(contact.row_number, False, sheet_id=sheet_id)
                 state.failed += 1
                 result = SendResult(contact=contact, success=False, error=str(e))
                 _log(state, f"  -> FAILED: {str(e)}")

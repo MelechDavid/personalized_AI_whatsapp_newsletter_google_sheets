@@ -18,6 +18,7 @@ from dotenv import load_dotenv
 load_dotenv(PROJECT_ROOT / ".env")
 
 from execution.send_messages import run_send_loop, SessionState
+from execution.google_sheets import extract_sheet_id
 
 # Page config
 st.set_page_config(
@@ -40,6 +41,20 @@ session: SessionState = st.session_state.session
 # --- Sidebar: Controls ---
 with st.sidebar:
     st.header("Configuration")
+
+    sheet_url = st.text_input(
+        "Google Sheet URL (optional)",
+        value="",
+        placeholder="https://docs.google.com/spreadsheets/d/.../edit",
+        help="Paste a Google Sheet link to override the default sheet. Leave empty to use the default.",
+        disabled=session.is_running,
+    )
+
+    override_sheet_id = None
+    if sheet_url.strip():
+        override_sheet_id = extract_sheet_id(sheet_url.strip())
+        if override_sheet_id is None:
+            st.error("Invalid Google Sheet URL. Expected format: https://docs.google.com/spreadsheets/d/SHEET_ID/...")
 
     msg_count = st.number_input(
         "Number of messages to send",
@@ -74,6 +89,7 @@ with st.sidebar:
                     count=msg_count,
                     delay=delay,
                     state=session,
+                    sheet_id=override_sheet_id,
                 )
 
             thread = threading.Thread(target=_run, daemon=True)

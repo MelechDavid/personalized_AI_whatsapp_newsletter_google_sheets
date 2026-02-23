@@ -6,6 +6,7 @@ uploaded .xlsx files hosted in Google Sheets.
 """
 
 import os
+import re
 from pathlib import Path
 from dataclasses import dataclass
 
@@ -18,6 +19,15 @@ SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 PROJECT_ROOT = Path(__file__).parent.parent
 CREDENTIALS_FILE = PROJECT_ROOT / "credentials.json"
 TOKEN_FILE = PROJECT_ROOT / "token.json"
+
+
+def extract_sheet_id(url: str) -> str | None:
+    """Extract Google Sheet ID from a URL like:
+    https://docs.google.com/spreadsheets/d/SHEET_ID/edit#gid=0
+    Returns None if the URL doesn't match the expected format.
+    """
+    match = re.search(r"/spreadsheets/d/([a-zA-Z0-9_-]+)", url)
+    return match.group(1) if match else None
 
 
 @dataclass
@@ -85,13 +95,13 @@ def normalize_phone(phone_raw: str) -> str:
     return "".join(c for c in phone_raw if c.isdigit())
 
 
-def get_pending_contacts(limit: int) -> list[Contact]:
+def get_pending_contacts(limit: int, sheet_id: str | None = None) -> list[Contact]:
     """
     Fetch up to `limit` contacts where column A is empty.
     Columns: A=status, B=ID, C=Sort Name, D=Phone
     """
     service = get_sheets_service()
-    sheet_id = os.getenv("GOOGLE_SHEET_ID")
+    sheet_id = sheet_id or os.getenv("GOOGLE_SHEET_ID")
     sheet_name = os.getenv("SHEET_NAME", "Good Version")
 
     # Read columns A through D
@@ -140,10 +150,10 @@ def get_pending_contacts(limit: int) -> list[Contact]:
     return contacts
 
 
-def write_status(row_number: int, success: bool) -> None:
+def write_status(row_number: int, success: bool, sheet_id: str | None = None) -> None:
     """Write send status to column A: 1=success, 0=failure."""
     service = get_sheets_service()
-    sheet_id = os.getenv("GOOGLE_SHEET_ID")
+    sheet_id = sheet_id or os.getenv("GOOGLE_SHEET_ID")
     sheet_name = os.getenv("SHEET_NAME", "Good Version")
 
     value = 1 if success else 0
