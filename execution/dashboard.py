@@ -67,9 +67,9 @@ with st.sidebar:
 
     delay = st.slider(
         "Delay between messages (seconds)",
-        min_value=15,
+        min_value=1,
         max_value=120,
-        value=30,
+        value=15,
         step=5,
         help="Longer delays reduce risk of being flagged",
     )
