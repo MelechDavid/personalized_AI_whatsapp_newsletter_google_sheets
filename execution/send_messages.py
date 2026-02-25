@@ -88,6 +88,7 @@ def run_send_loop(
     delay: int,
     state: Optional[SessionState] = None,
     on_progress: Optional[Callable] = None,
+    sheet_id: Optional[str] = None,
 ) -> list[SendResult]:
     """
     Main send loop.
@@ -144,7 +145,7 @@ def run_send_loop(
 
         # Fetch contacts from Google Sheet
         _log(state, f"Fetching {count} pending contacts from Google Sheet...")
-        contacts = get_pending_contacts(count)
+        contacts = get_pending_contacts(count, sheet_id=sheet_id)
         actual_count = len(contacts)
 
         if actual_count == 0:
@@ -185,19 +186,19 @@ def run_send_loop(
                     image_path=image_path,
                 )
 
-                write_status(contact.row_number, True)
+                write_status(contact.row_number, True, sheet_id=sheet_id)
                 state.sent += 1
                 result = SendResult(contact=contact, success=True)
                 _log(state, f"  -> Sent successfully to {contact.first_name}")
 
             except ContactNotFoundError as e:
-                write_status(contact.row_number, False)
+                write_status(contact.row_number, False, sheet_id=sheet_id)
                 state.failed += 1
                 result = SendResult(contact=contact, success=False, error=str(e))
                 _log(state, f"  -> FAILED: Contact not on WhatsApp ({contact.phone_raw})")
 
             except (SendTimeoutError, WhatsAppSendError) as e:
-                write_status(contact.row_number, False)
+                write_status(contact.row_number, False, sheet_id=sheet_id)
                 state.failed += 1
                 result = SendResult(contact=contact, success=False, error=str(e))
                 _log(state, f"  -> FAILED: {str(e)}")
@@ -220,8 +221,8 @@ def run_send_loop(
 
             # Delay with jitter (skip after last message)
             if i < actual_count - 1 and not state.should_stop:
-                jitter = random.uniform(-5, 10)
-                actual_delay = max(20, delay + jitter)
+                jitter = random.uniform(-2, 2)  # +/- 2 seconds jitter
+                actual_delay = max(3, delay + jitter) #max(20, ...) to enforce a minimum delay of 20s
                 _log(state, f"  Waiting {actual_delay:.0f}s before next message...")
                 for _ in range(int(actual_delay)):
                     if state.should_stop:
@@ -247,7 +248,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Send WhatsApp messages from Google Sheet")
     parser.add_argument("--count", type=int, default=10, help="Number of messages to send")
-    parser.add_argument("--delay", type=int, default=60, help="Delay between messages in seconds")
+    parser.add_argument("--delay", type=int, default=5, help="Delay between messages in seconds") #60 default
     args = parser.parse_args()
 
     results = run_send_loop(count=args.count, delay=args.delay)
